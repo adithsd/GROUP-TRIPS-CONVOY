@@ -1,0 +1,162 @@
+---
+name: ConvoySync Dark Navigation
+colors:
+  surface: '#0b1326'
+  surface-dim: '#0b1326'
+  surface-bright: '#31394d'
+  surface-container-lowest: '#060e20'
+  surface-container-low: '#131b2e'
+  surface-container: '#171f33'
+  surface-container-high: '#222a3d'
+  surface-container-highest: '#2d3449'
+  on-surface: '#dae2fd'
+  on-surface-variant: '#bcc9cd'
+  inverse-surface: '#dae2fd'
+  inverse-on-surface: '#283044'
+  outline: '#869397'
+  outline-variant: '#3d494c'
+  surface-tint: '#4cd7f6'
+  primary: '#4cd7f6'
+  on-primary: '#003640'
+  primary-container: '#06b6d4'
+  on-primary-container: '#00424f'
+  inverse-primary: '#00687a'
+  secondary: '#bcc7de'
+  on-secondary: '#263143'
+  secondary-container: '#3e495d'
+  on-secondary-container: '#aeb9d0'
+  tertiary: '#ffb873'
+  on-tertiary: '#4b2800'
+  tertiary-container: '#e89337'
+  on-tertiary-container: '#5b3200'
+  error: '#F43F5E'
+  on-error: '#690005'
+  error-container: '#93000a'
+  on-error-container: '#ffdad6'
+  primary-fixed: '#acedff'
+  primary-fixed-dim: '#4cd7f6'
+  on-primary-fixed: '#001f26'
+  on-primary-fixed-variant: '#004e5c'
+  secondary-fixed: '#d8e3fb'
+  secondary-fixed-dim: '#bcc7de'
+  on-secondary-fixed: '#111c2d'
+  on-secondary-fixed-variant: '#3c475a'
+  tertiary-fixed: '#ffdcbf'
+  tertiary-fixed-dim: '#ffb873'
+  on-tertiary-fixed: '#2d1600'
+  on-tertiary-fixed-variant: '#6a3b00'
+  background: '#0b1326'
+  on-background: '#dae2fd'
+  surface-variant: '#2d3449'
+  success: '#10B981'
+  warning: '#F59E0B'
+  surface-glass: rgba(15, 23, 42, 0.85)
+  text-primary: '#F8FAFC'
+  text-secondary: '#94A3B8'
+typography:
+  headline-lg:
+    fontFamily: Inter
+    fontSize: 2.25rem
+    fontWeight: '700'
+    lineHeight: '1.15'
+    letterSpacing: -0.025em
+  headline-md:
+    fontFamily: Inter
+    fontSize: 1.75rem
+    fontWeight: '600'
+    lineHeight: '1.2'
+    letterSpacing: -0.02em
+  headline-sm:
+    fontFamily: Inter
+    fontSize: 1.25rem
+    fontWeight: '600'
+    lineHeight: '1.3'
+    letterSpacing: -0.015em
+  body-md:
+    fontFamily: Inter
+    fontSize: 0.9375rem
+    fontWeight: '400'
+    lineHeight: '1.45'
+    letterSpacing: -0.01em
+  body-sm:
+    fontFamily: Inter
+    fontSize: 0.8125rem
+    fontWeight: '400'
+    lineHeight: '1.4'
+    letterSpacing: 0em
+  caption:
+    fontFamily: Inter
+    fontSize: 0.75rem
+    fontWeight: '500'
+    lineHeight: '1.35'
+    letterSpacing: 0em
+  mono-metric:
+    fontFamily: '''JetBrains Mono'', monospace'
+    fontSize: 1rem
+    fontWeight: '600'
+    lineHeight: '1.2'
+    letterSpacing: -0.01em
+rounded:
+  sm: 0.25rem
+  DEFAULT: 0.5rem
+  md: 0.75rem
+  lg: 1rem
+  xl: 1.5rem
+  full: 9999px
+spacing:
+  gutter: 1rem
+  margin: 1.5rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 1rem
+  space-lg: 1.5rem
+  space-xl: 2rem
+---
+
+## Brand & Style
+This design system adapts a precision-driven minimalist aesthetic into a sleek, high-contrast dark-mode navigation system tailored for fleet management and real-time logistics. The design evokes absolute reliability, operational clarity, and futuristic control. 
+
+The aesthetic style merges **Glassmorphism** and **Functional Minimalism**: deep slate gray foundations (`#0F172A`) paired with translucent, frosted glass panels that maintain spatial context, combined with vibrant neon accents that instantly communicate vehicle states, speeds, and critical alerts without visual noise.
+
+## Colors
+The color palette is optimized for low-light cockpits and long-duration operational monitoring, prioritizing high contrast and instant status recognition.
+
+- **Base Background (`#0F172A`):** Deep slate gray canvas that minimizes eye fatigue and maximizes contrast for data visualizations and maps.
+- **Translucent Glass Panels (`rgba(15, 23, 42, 0.85)`):** Floating navigation overlays and sidebars featuring a heavy backdrop blur (`backdrop-filter: blur(20px)`) to preserve underlying map and route visibility.
+- **Primary Accent (`#06B6D4`):** Electric cyan used strictly for primary interactive controls, active routes, and key selection states.
+- **Status Accents:** 
+  - **Success / All-Good (`#10B981`):** Emerald green for optimal vehicle health, clear routes, and normal operations.
+  - **Warnings / Pit-Stops (`#F59E0B`):** Amber for approaching maintenance, fuel alerts, or minor delays.
+  - **Alerts / Errors (`#F43F5E`):** Coral for critical route deviations, mechanical failures, or emergency stops.
+
+## Typography
+Typography is engineered for maximum legibility at a glance, utilizing clean grotesque letterforms and strict structural hierarchies.
+
+- **Tabular Numerals:** All speeds, ETAs, coordinates, and telemetry metrics must enforce `font-variant-numeric: tabular-nums` to guarantee vertical alignment without jitter during real-time updates.
+- **Scale & Weight:** Headings use tight tracking and semi-bold weights for scannability, while body copy remains neutral and open.
+
+## Layout & Spacing
+The layout follows a disciplined fluid grid system adapted for dense telemetry dashboards and navigation overlays.
+
+- **Spacing Rhythm:** Based on an 8px scale, maintaining consistent breathing room across floating panels, map widgets, and sidebar controls.
+- **Responsive Behavior:** On desktop viewports, layouts utilize multi-column bento grids for concurrent map viewing and telemetry monitoring. On mobile, panels collapse into single-column stacking drawers with touch-optimized margins.
+
+## Elevation & Depth
+Depth is achieved through a combination of translucent glassmorphism and subtle ambient lighting rather than heavy drop shadows.
+
+- **Glassmorphism Layers:** Floating cards and navigation headers use `rgba(15, 23, 42, 0.85)` surfaces paired with a `20px` background blur to establish clear z-index hierarchy over dynamic map layers.
+- **Low-Contrast Outlines:** Panels are defined by ultra-thin, semi-transparent borders (`rgba(255, 255, 255, 0.08)`) that catch ambient light without introducing visual clutter.
+
+## Shapes
+The shape language favors modern rounded geometry, balancing structural precision with friendly ergonomics.
+
+- **Corner Radii:** Standard interactive elements and cards use a base `0.5rem` to `1rem` radius, while primary buttons and status badges adopt fully rounded pill shapes (`9999px`) to immediately signal interactivity and status.
+
+## Components
+Consistent styling rules for core UI elements within the navigation ecosystem:
+
+- **Buttons:** Primary actions utilize electric cyan (`#06B6D4`) fills with pill-shaped borders and high-contrast dark text. Secondary actions use subtle translucent slate backgrounds with light text.
+- **Chips & Badges:** Compact status indicators featuring soft background tints paired with solid semantic text colors (emerald for all-good, amber for warnings, coral for alerts).
+- **Lists & Telemetry Rows:** Grouped inside translucent glass containers, separated by hair-thin dividers, featuring tabular numerals for real-time speed and ETA readouts.
+- **Inputs & Search Fields:** Dark slate input wells with subtle borders that transition to electric cyan focus rings upon interaction.
+- **Cards:** Frosted glass panels (`rgba(15, 23, 42, 0.85)`) with rounded corners, utilized for containing route summaries, vehicle telemetry feeds, and driver notes.

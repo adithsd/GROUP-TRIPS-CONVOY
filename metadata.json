@@ -1,0 +1,6 @@
+{
+  "name": "ConvoyPulse",
+  "description": "Live Group Road Trip & Real-Time Convoy Tracking with Google Maps",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
