@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Car, X, KeyRound } from 'lucide-react';
-import { ConvoyMember, ConvoyParty } from '../types';
+import { KeyRound, X, Radio } from 'lucide-react';
+import { ConvoyMember, ConvoyParty, VehicleType } from '../types';
 import { convoyService } from '../services/convoyService';
+import { VehicleIcon } from './VehicleIcon';
 
 interface JoinConvoyModalProps {
   isOpen: boolean;
@@ -11,16 +12,12 @@ interface JoinConvoyModalProps {
   defaultLocation: { lat: number; lng: number };
 }
 
-const VEHICLE_COLORS = [
-  { name: 'Electric Cyan', hex: '#06b6d4' },
-  { name: 'Racing Red', hex: '#ef4444' },
-  { name: 'Midnight Blue', hex: '#3b82f6' },
-  { name: 'Neon Emerald', hex: '#10b981' },
-  { name: 'Sunset Orange', hex: '#f97316' },
-  { name: 'Amethyst Purple', hex: '#8b5cf6' }
+const VEHICLE_CONFIGS = [
+  { model: 'Rivian R1S Overland', type: 'suv' as VehicleType, color: '#ffaa00', label: 'Overland 4x4' },
+  { model: 'Ford F-150 Lightning', type: 'truck' as VehicleType, color: '#f59e0b', label: 'Heavy Rig' },
+  { model: 'Porsche Taycan Cross', type: 'sport' as VehicleType, color: '#10b981', label: 'Pacesetter' },
+  { model: 'Tesla Model Y AWD', type: 'suv' as VehicleType, color: '#e2e8f0', label: 'Expedition' }
 ];
-
-const AVATARS = ['🏎️', '🚙', '🚗', '🚐', '⚡', '🚀', '🔥'];
 
 export const JoinConvoyModal: React.FC<JoinConvoyModalProps> = ({
   isOpen,
@@ -31,14 +28,13 @@ export const JoinConvoyModal: React.FC<JoinConvoyModalProps> = ({
 }) => {
   const [partyCode, setPartyCode] = useState(defaultPartyCode);
   const [name, setName] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('Jeep Wrangler');
-  const [vehicleColor, setVehicleColor] = useState('#3b82f6');
-  const [avatar, setAvatar] = useState('🚙');
+  const [selectedVehicle, setSelectedVehicle] = useState(VEHICLE_CONFIGS[1]);
+  const [vehicleColor, setVehicleColor] = useState(VEHICLE_CONFIGS[1].color);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (defaultPartyCode) {
-      setPartyCode(defaultPartyCode);
+      setPartyCode(defaultPartyCode.toUpperCase());
     }
   }, [defaultPartyCode]);
 
@@ -49,24 +45,26 @@ export const JoinConvoyModal: React.FC<JoinConvoyModalProps> = ({
     setError('');
 
     if (!partyCode.trim() || !name.trim()) {
-      setError('Please enter both party code and your name.');
+      setError('Please provide both party code and your driver call sign.');
       return;
     }
 
     const result = convoyService.joinParty(partyCode.trim().toUpperCase(), {
       name: name.trim(),
-      vehicleModel,
-      vehicleColor,
-      avatar,
-      lat: defaultLocation.lat + (Math.random() * 0.02 - 0.01),
-      lng: defaultLocation.lng + (Math.random() * 0.02 - 0.01),
+      vehicleModel: selectedVehicle.model,
+      vehicleType: selectedVehicle.type,
+      vehicleColor: vehicleColor,
+      avatar: '🚙',
+      lat: defaultLocation.lat + (Math.random() * 0.015 - 0.008),
+      lng: defaultLocation.lng + (Math.random() * 0.015 - 0.008),
       speed: 0,
-      heading: 0,
+      heading: 45,
+      batteryLevel: 89,
       lastUpdated: Date.now()
     });
 
     if (!result) {
-      setError('Party not found. Please check the 6-character code and ensure the host is active.');
+      setError(`Party "${partyCode.toUpperCase()}" not found on this computer. Ensure host is active or open the host link in another tab.`);
       return;
     }
 
@@ -75,38 +73,40 @@ export const JoinConvoyModal: React.FC<JoinConvoyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl relative">
+    <div className="fixed inset-0 z-50 bg-[#06080d]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+      <div className="cockpit-panel-3d rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-800/80 p-2 rounded-full transition"
+          className="absolute top-5 right-5 btn-tactile text-slate-400 hover:text-white p-2 rounded-full"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-blue-500/20 border border-blue-500/40 rounded-2xl flex items-center justify-center text-blue-400">
-            <Users className="w-6 h-6" />
+        <div className="flex items-center gap-3.5 mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-b from-[#2a3442] to-[#121720] border border-white/20 flex items-center justify-center text-amber-400 shadow-xl shadow-black/70">
+            <Radio className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold">Join Active Convoy</h2>
-            <p className="text-xs text-slate-400">Enter your friend's party code to join the live road trip</p>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-extrabold px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30">
+              FLEET TRANSCEIVER
+            </span>
+            <h2 className="text-xl font-bold tracking-tight text-white mt-1 font-mono">Join Active Convoy</h2>
           </div>
         </div>
 
         {error && (
-          <div className="bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs px-4 py-3 rounded-xl mb-4">
+          <div className="bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs px-4 py-3 rounded-xl mb-4 font-mono">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-1.5">
               6-Character Party Code
             </label>
             <div className="relative">
-              <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-cyan-400" />
+              <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-amber-400" />
               <input
                 type="text"
                 value={partyCode}
@@ -114,86 +114,89 @@ export const JoinConvoyModal: React.FC<JoinConvoyModalProps> = ({
                 placeholder="e.g. A3F8K2"
                 maxLength={6}
                 required
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl pl-10 pr-4 py-3 font-mono font-bold tracking-widest text-cyan-400 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition uppercase"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Your Driver Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Jordan Lee"
-                required
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Vehicle Model
-              </label>
-              <input
-                type="text"
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-                placeholder="e.g. Jeep Wrangler"
-                required
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition"
+                className="w-full digital-recessed rounded-xl pl-10 pr-4 py-3 font-mono font-extrabold tracking-widest text-amber-400 placeholder-slate-600 focus:outline-none focus:border-amber-400 transition uppercase text-base"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              Vehicle Color Badge
+            <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+              Your Driver Call Sign / Name
             </label>
-            <div className="flex items-center gap-2.5">
-              {VEHICLE_COLORS.map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => setVehicleColor(c.hex)}
-                  style={{ backgroundColor: c.hex }}
-                  className={`w-8 h-8 rounded-full transition transform ${
-                    vehicleColor === c.hex ? 'ring-4 ring-white/30 scale-110' : 'opacity-70 hover:opacity-100'
-                  }`}
-                  title={c.name}
-                />
-              ))}
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Jordan Lee (Sweeper-2)"
+              required
+              className="w-full digital-recessed rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+              Select Your Rig
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {VEHICLE_CONFIGS.map((v) => {
+                const isSelected = selectedVehicle.model === v.model;
+                return (
+                  <button
+                    key={v.model}
+                    type="button"
+                    onClick={() => {
+                      setSelectedVehicle(v);
+                      setVehicleColor(v.color);
+                    }}
+                    className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition ${
+                      isSelected
+                        ? 'bg-gradient-to-b from-[#253040] to-[#141a24] border-amber-400 ring-2 ring-amber-400/25 shadow-lg'
+                        : 'bg-slate-950/70 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="p-1 rounded-lg bg-[#080b11] border border-white/10 shrink-0 shadow-inner">
+                      <VehicleIcon
+                        type={v.type}
+                        color={isSelected ? vehicleColor : v.color}
+                        heading={0}
+                        size={26}
+                        showHeadlights={false}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white leading-tight font-mono">{v.model}</p>
+                      <p className="text-[10px] text-amber-400 font-mono font-bold">{v.label}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              Driver Avatar
+            <label className="block text-xs font-mono font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+              Livery Accent
             </label>
             <div className="flex items-center gap-2">
-              {AVATARS.map((av) => (
+              {['#ffaa00', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#a855f7'].map((hex) => (
                 <button
-                  key={av}
+                  key={hex}
                   type="button"
-                  onClick={() => setAvatar(av)}
-                  className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center bg-slate-800 border transition ${
-                    avatar === av ? 'border-cyan-500 bg-cyan-500/20 scale-105' : 'border-slate-700 hover:border-slate-600'
+                  onClick={() => setVehicleColor(hex)}
+                  style={{ backgroundColor: hex }}
+                  className={`w-7 h-7 rounded-full transition transform ${
+                    vehicleColor === hex ? 'ring-4 ring-white/50 scale-110 shadow-lg' : 'opacity-60 hover:opacity-100'
                   }`}
-                >
-                  {av}
-                </button>
+                />
               ))}
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold py-3.5 rounded-xl transition shadow-lg shadow-blue-500/25 text-sm"
+            className="w-full mt-4 btn-amber-3d text-slate-950 font-mono font-extrabold py-3.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider"
           >
-            Join Convoy Party
+            Lock On & Join Formation
           </button>
         </form>
       </div>

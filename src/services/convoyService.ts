@@ -1,4 +1,6 @@
-import { ConvoyMember, ConvoyParty, StatusPingEvent, Destination } from '../types';
+import { ConvoyMember, ConvoyParty, StatusPingEvent, Destination, RegroupPoint, VoiceMessage } from '../types';
+import { soundService } from './soundService';
+import { voiceService } from './voiceService';
 
 const CHANNEL_NAME = 'convoy_pulse_sync_channel_v1';
 const STORAGE_PREFIX = 'convoy_pulse_';
@@ -18,7 +20,12 @@ class ConvoyService {
           if (event.data && event.data.type === 'STATE_SYNC') {
             this.notifyListeners();
           } else if (event.data && event.data.type === 'STATUS_PING') {
+            soundService.playRogerBeep();
             this.notifyListeners();
+          } else if (event.data && event.data.type === 'VOICE_MESSAGE') {
+            if (event.data.voiceMsg && event.data.voiceMsg.senderId !== this.currentUser?.id) {
+              voiceService.playVoiceMessage(event.data.voiceMsg);
+            }
           }
         };
       } catch (e) {
@@ -26,7 +33,6 @@ class ConvoyService {
       }
     }
 
-    // Storage event listener for cross-tab sync fallback
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', (e) => {
         if (e.key && e.key.startsWith(STORAGE_PREFIX)) {
@@ -49,9 +55,12 @@ class ConvoyService {
     this.listeners.forEach(cb => cb(state));
   }
 
-  private broadcast() {
+  private broadcast(ping?: boolean) {
     if (this.channel) {
-      this.channel.postMessage({ type: 'STATE_SYNC', partyId: this.currentPartyId });
+      this.channel.postMessage({ 
+        type: ping ? 'STATUS_PING' : 'STATE_SYNC', 
+        partyId: this.currentPartyId 
+      });
     }
   }
 
@@ -78,6 +87,9 @@ class ConvoyService {
       ...hostUser,
       id: userId,
       role: 'host',
+      batteryLevel: hostUser.batteryLevel ?? 88,
+      fuelRangeKm: hostUser.fuelRangeKm ?? 320,
+      fuelType: hostUser.fuelType ?? 'ev',
       lastUpdated: Date.now()
     };
 
@@ -86,6 +98,9 @@ class ConvoyService {
       hostId: userId,
       destination,
       routePoints: routePoints || [],
+      radioChannel: 'CH-19 (146.520 MHz)',
+      regroupThresholdKm: 2.5, // Default threshold customizable by user
+      activeRegroupPoint: null,
       createdAt: Date.now(),
       isActive: true
     };
@@ -97,6 +112,7 @@ class ConvoyService {
     localStorage.setItem(`${STORAGE_PREFIX}members_${partyId}`, JSON.stringify([user]));
     localStorage.setItem(`${STORAGE_PREFIX}pings_${partyId}`, JSON.stringify([]));
 
+    soundService.playRogerBeep();
     this.broadcast();
     return { party, user };
   }
@@ -112,6 +128,9 @@ class ConvoyService {
       ...memberInfo,
       id: userId,
       role: 'member',
+      batteryLevel: memberInfo.batteryLevel ?? 85,
+      fuelRangeKm: memberInfo.fuelRangeKm ?? 290,
+      fuelType: memberInfo.fuelType ?? 'ev',
       lastUpdated: Date.now()
     };
 
@@ -121,12 +140,12 @@ class ConvoyService {
     const membersJson = localStorage.getItem(`${STORAGE_PREFIX}members_${partyId}`);
     const members: ConvoyMember[] = membersJson ? JSON.parse(membersJson) : [];
 
-    // Remove existing user if reconnecting with same session
     const filtered = members.filter(m => m.name !== user.name);
     filtered.push(user);
 
     localStorage.setItem(`${STORAGE_PREFIX}members_${partyId}`, JSON.stringify(filtered));
 
+    soundService.playRogerBeep();
     this.broadcast();
     return { party, user };
   }
@@ -158,42 +177,116 @@ class ConvoyService {
     this.broadcast();
   }
 
-  public sendStatusPing(type: 'fuel' | 'pit_stop' | 'traffic' | 'all_good', message: string) {
+  public updateFuelAndBattery(batteryPercent: number, rangeKm: number) {
     if (!this.currentPartyId || !this.currentUser) return;
+    this.currentUser.batteryLevel = batteryPercent;
+    this.currentUser.fuelRangeKm = rangeKm;
 
-    this.currentUser.activeStatus = type;
-    this.currentUser.statusTime = Date.now();
+    const membersJson = localStorage.getItem(`${STORAGE_PREFIX}members_${this.currentPartyId}`);
+    if (!membersJson) return;
 
-    // Update member list
+    const members: ConvoyMember[] = JSON.parse(membersJson);
+    const idx = members.findIndex(m => m.id === this.currentUser?.id);
+    if (idx >= 0) {
+      members[idx] = this.currentUser;
+      localStorage.setItem(`${STORAGE_PREFIX}members_${this.currentPartyId}`, JSON.stringify(members));
+      this.broadcast();
+    }
+  }
+
+  public setRegroupThreshold(thresholdKm: number) {
+    if (!this.currentPartyId) return;
+    const partyJson = localStorage.getItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`);
+    if (!partyJson) return;
+
+    const party: ConvoyParty = JSON.parse(partyJson);
+    party.regroupThresholdKm = thresholdKm;
+    localStorage.setItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`, JSON.stringify(party));
+    this.broadcast();
+  }
+
+  public setRegroupPoint(point: RegroupPoint | null) {
+    if (!this.currentPartyId) return;
+    const partyJson = localStorage.getItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`);
+    if (!partyJson) return;
+
+    const party: ConvoyParty = JSON.parse(partyJson);
+    party.activeRegroupPoint = point;
+    localStorage.setItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`, JSON.stringify(party));
+
+    if (point) {
+      this.sendStatusPing('regroup', `REGROUP LOCK: ${point.name} in ${point.distanceAheadKm} km`);
+    } else {
+      this.broadcast();
+    }
+  }
+
+  public broadcastVoiceMessage(voiceMsg: VoiceMessage) {
+    if (this.channel) {
+      this.channel.postMessage({
+        type: 'VOICE_MESSAGE',
+        partyId: this.currentPartyId,
+        voiceMsg
+      });
+    }
+  }
+
+  public updateRoutePoints(points: { lat: number; lng: number }[]) {
+    if (!this.currentPartyId) return;
+    const partyJson = localStorage.getItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`);
+    if (!partyJson) return;
+
+    const party: ConvoyParty = JSON.parse(partyJson);
+    party.routePoints = points;
+    localStorage.setItem(`${STORAGE_PREFIX}party_${this.currentPartyId}`, JSON.stringify(party));
+    this.broadcast();
+  }
+
+  public sendStatusPing(type: 'fuel' | 'pit_stop' | 'traffic' | 'hazard' | 'all_good' | 'regroup' | 'water' | 'camp', message: string, senderName?: string) {
+    if (!this.currentPartyId) return;
+
+    if (type === 'hazard') {
+      soundService.playHazardAlert();
+    } else {
+      soundService.playRogerBeep();
+    }
+
+    const memberName = senderName || this.currentUser?.name || 'Driver';
+    const memberId = this.currentUser?.id || 'sender';
+
+    if (this.currentUser) {
+      this.currentUser.activeStatus = type;
+      this.currentUser.statusTime = Date.now();
+    }
+
     const membersJson = localStorage.getItem(`${STORAGE_PREFIX}members_${this.currentPartyId}`);
     if (membersJson) {
       const members: ConvoyMember[] = JSON.parse(membersJson);
-      const idx = members.findIndex(m => m.id === this.currentUser?.id);
+      const idx = members.findIndex(m => m.name === memberName || m.id === memberId);
       if (idx >= 0) {
-        members[idx] = this.currentUser;
+        members[idx].activeStatus = type;
+        members[idx].statusTime = Date.now();
         localStorage.setItem(`${STORAGE_PREFIX}members_${this.currentPartyId}`, JSON.stringify(members));
       }
     }
 
-    // Add ping event
     const pingsJson = localStorage.getItem(`${STORAGE_PREFIX}pings_${this.currentPartyId}`);
     const pings: StatusPingEvent[] = pingsJson ? JSON.parse(pingsJson) : [];
     
     const newPing: StatusPingEvent = {
       id: 'ping_' + Math.random().toString(36).substring(2, 9),
-      memberId: this.currentUser.id,
-      memberName: this.currentUser.name,
+      memberId,
+      memberName,
       type,
       message,
       timestamp: Date.now()
     };
 
     pings.unshift(newPing);
-    // keep latest 20
-    if (pings.length > 20) pings.pop();
+    if (pings.length > 25) pings.pop();
 
     localStorage.setItem(`${STORAGE_PREFIX}pings_${this.currentPartyId}`, JSON.stringify(pings));
-    this.broadcast();
+    this.broadcast(true);
   }
 
   public updateSimulatedMembers(simulatedMembers: ConvoyMember[]) {
@@ -202,7 +295,6 @@ class ConvoyService {
     if (!membersJson) return;
 
     const members: ConvoyMember[] = JSON.parse(membersJson);
-    // Keep real users, update or add simulated members
     const nonSimulated = members.filter(m => !m.isSimulated && m.id !== this.currentUser?.id);
     const updated = [
       ...(this.currentUser ? [this.currentUser] : []),
